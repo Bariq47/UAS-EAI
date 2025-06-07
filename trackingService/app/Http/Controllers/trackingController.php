@@ -6,6 +6,7 @@ use App\Http\Resources\trackingResource;
 use App\Models\trackingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 
 class trackingController extends Controller
 {
@@ -72,9 +73,14 @@ class trackingController extends Controller
             'status' => $request->status,
         ]);
 
-        Http::patch("http://localhost:8000/api/shipments/{$tracking->shipment_id}/status", [
+        // Http::patch("http://localhost:8000/api/shipments/{$tracking->shipment_id}/status", [
+        //     'status' => $request->status,
+        // ]);
+
+        Redis::publish('tracking_updates', json_encode([
+            'shipment_id' => $tracking->shipment_id,
             'status' => $request->status,
-        ]);
+        ]));
 
         return new trackingResource($tracking, 'success', 'Tracking data updated successfully');
     }
