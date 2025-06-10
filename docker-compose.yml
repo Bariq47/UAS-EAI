@@ -1,0 +1,257 @@
+version: "3.8"
+
+services:
+  inventoryservice:
+    build:
+      context: ./inventoryservice
+      dockerfile: Dockerfile
+    image: inventoryservice
+    container_name: laravel-inventoryservice
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./inventoryservice:/var/www/html
+    networks:
+      - laravel-net
+    ports:
+      - 9070:80
+    environment:
+      DB_HOST: inventory-db
+      DB_DATABASE: db_inventory_iae
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+      QUEUE_CONNECTION: database
+    depends_on:
+      - inventory-db
+      - redis
+    command: >
+      sh -c "php artisan migrate --force && apache2-foreground"
+
+  inventory-db:
+    image: mysql:8.0
+    container_name: mysql-inventory-db
+    environment:
+      MYSQL_DATABASE: db_inventory_iae
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-inventory:/var/lib/mysql
+    networks:
+      - laravel-net
+
+  shipmentservice:
+    build:
+      context: ./shipmentservice
+      dockerfile: Dockerfile
+    image: shipmentservice
+    container_name: laravel-shipmentservice
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./shipmentservice:/var/www/html
+    networks:
+      - laravel-net
+    ports:
+      - 9071:80
+    environment:
+      DB_HOST: shipment-db
+      DB_DATABASE: db_shipment_iae
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+      QUEUE_CONNECTION: database
+    depends_on:
+      - shipment-db
+      - redis
+      - inventoryservice
+    command: >
+      sh -c "php artisan migrate --force && apache2-foreground"
+      
+  shipment-db:
+    image: mysql:8.0
+    container_name: mysql-shipment-db
+    environment:
+      MYSQL_DATABASE: db_shipment_iae
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-shipment:/var/lib/mysql
+    networks:
+      - laravel-net
+      
+  trackingservice:
+    build:
+      context: ./trackingservice
+      dockerfile: Dockerfile
+    image: trackingservice
+    container_name: laravel-trackingservice
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./trackingservice:/var/www/html
+    networks:
+      - laravel-net
+    ports:
+      - 9072:80
+    environment:
+      DB_HOST: tracking-db
+      DB_DATABASE: db_tracking_iae
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+      QUEUE_CONNECTION: database
+    depends_on:
+      - tracking-db
+      - redis
+      - inventoryservice
+
+    command: >
+      sh -c "php artisan migrate --force && apache2-foreground"
+      
+  tracking-db:
+    image: mysql:8.0
+    container_name: mysql-tracking-db
+    environment:
+      MYSQL_DATABASE: db_tracking_iae
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-tracking:/var/lib/mysql
+    networks:
+      - laravel-net
+  graphqlService:
+    build:
+      context: ./graphqlService
+      dockerfile: Dockerfile
+    image: graphqlservice
+    container_name: laravel-graphqlservice
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./graphqlService:/var/www/html
+    networks:
+      - laravel-net
+    ports:
+      - 9073:80
+    environment:
+      SHIPMENT_URL: http://shipmentservice
+      INVENTORY_URL: http://inventoryservice
+      TRACKING_URL: http://trackingservice
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+    depends_on:
+      - shipmentservice
+      - inventoryservice
+      - trackingservice
+      - redis
+    command: apache2-foreground
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    networks:
+      - laravel-net
+
+  phpmyadmin-inventory:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-inventory
+    ports:
+      - 9080:80
+    environment:
+      PMA_HOST: inventory-db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - inventory-db
+    networks:
+      - laravel-net
+
+  phpmyadmin-shipment:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-shipment
+    ports:
+      - 9081:80
+    environment:
+      PMA_HOST: shipment-db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - shipment-db
+    networks:
+      - laravel-net
+  
+  phpmyadmin-tracking:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-tracking
+    ports:
+      - 9082:80
+    environment:
+      PMA_HOST: tracking-db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - tracking-db
+    networks:
+      - laravel-net
+
+  # shipment-queue-worker:
+  #   build:
+  #     context: ./shipmentservice
+  #     dockerfile: Dockerfile
+  #   image: shipmentservice
+  #   container_name: laravel-shipment-queue-worker
+  #   restart: unless-stopped
+  #   working_dir: /var/www/html
+  #   volumes:
+  #     - ./shipmentservice:/var/www/html
+  #   networks:
+  #     - laravel-net
+  #   environment:
+  #     DB_HOST: shipment-db
+  #     DB_DATABASE: db_shipment_iae
+  #     DB_USERNAME: root
+  #     DB_PASSWORD: root
+  #     REDIS_HOST: redis
+  #     REDIS_CLIENT: predis
+  #     QUEUE_CONNECTION: redis
+  #   depends_on:
+  #     - shipment-db
+  #     - redis
+  #   command: php artisan queue:work
+
+  shipment-redis-listener:
+    build:
+      context: ./shipmentservice
+    image: shipmentservice
+    container_name: shipment-redis-listener
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./shipmentservice:/var/www/html
+    environment:
+      DB_HOST: shipment-db
+      DB_DATABASE: db_shipment_iae
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+    depends_on:
+      - shipment-db
+      - redis
+    networks:
+      - laravel-net
+    command: php artisan redis:listen-tracking
+  
+
+networks:
+  laravel-net:
+
+
+volumes:
+  mysql-inventory:
+  mysql-shipment:
+  mysql-tracking:

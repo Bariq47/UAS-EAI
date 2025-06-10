@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\UpdateShipmentStatus;
 use App\Models\shipmentsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Redis;
@@ -41,5 +42,13 @@ class RedisTrackingListener extends Command
                 $this->error("Shipment ID {$data['shipment_id']} not found.");
             }
         });
+        // Redis::subscribe(['tracking_updates'], function ($message) {
+        //     $data = json_decode($message, true);
+
+        //     // Dispatch ke queue
+        //     UpdateShipmentStatus::dispatch($data);
+
+        //     $this->info("Dispatched update for Shipment ID {$data['shipment_id']}");
+        // });
     }
 }

@@ -97,7 +97,13 @@ class InventoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $inventory = inventoryService::find($id);
+        if (!$inventory) {
+            return new inventoryResource(null, 'error', 'Item not found');
+        }
+
+        $inventory->delete();
+        return new inventoryResource(null, 'success', 'Inventory deleted successfully');
     }
 
     public function decreaseStock(Request $request, $id)

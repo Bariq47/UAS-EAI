@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ShipmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,10 +14,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
-
-Route::apiResource('/shipments', ShipmentController::class);
-Route::patch('/shipments/{id}/status', [ShipmentController::class, 'updateStatus']);
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});

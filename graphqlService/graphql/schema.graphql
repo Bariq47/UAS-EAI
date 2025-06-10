@@ -1,0 +1,91 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+type Inventory {
+  id: ID!
+  item_name: String!
+  stock_qty: Int!
+  location: String!
+}
+
+type Shipment {
+  id: ID!
+  item_id: Int!
+  quantity: Int!
+  destination: String!
+  status: String!
+  item: Inventory @field(resolver: "App\\GraphQL\\Resolvers\\ShipmentResolver@item")
+  tracking: Tracking @field(resolver: "App\\GraphQL\\Resolvers\\ShipmentResolver@tracking")
+}
+
+type Tracking {
+  id: ID!
+  shipment_id: Int!
+  location: String!
+  status: String!
+}
+
+type Query {
+  inventories: [Inventory!]! @field(resolver: "App\\GraphQL\\Queries\\InventoryQuery@inventories")
+  inventory(id: ID!): Inventory @field(resolver: "App\\GraphQL\\Queries\\InventoryQuery@inventoryId")
+
+  shipments: [Shipment!]! @field(resolver: "App\\GraphQL\\Queries\\ShipmentQuery@shipment")
+  shipment(id: ID!): Shipment @field(resolver: "App\\GraphQL\\Queries\\ShipmentQuery@shipmentId")
+
+  trackings: [Tracking!]! @field(resolver: "App\\GraphQL\\Queries\\TrackingQuery@tracking")
+  tracking(id: ID!): Tracking @field(resolver: "App\\GraphQL\\Queries\\TrackingQuery@trackingId")
+}
+
+type Mutation {
+  createInventory(
+    item_name: String!,
+    stock_qty: Int!,
+    location: String!): Inventory!
+    @field(resolver: "App\\GraphQL\\Mutations\\CreateInventory@createInventory")
+
+  updateInventory(
+    id: ID!,
+    stock_qty: Int,
+    location: String): Inventory!
+    @field(resolver: "App\\GraphQL\\Mutations\\UpdateInventory@updateInventory")
+
+  deleteInventory(
+    id: ID!): Boolean!
+    @field(resolver: "App\\GraphQL\\Mutations\\DeleteInventory@deleteInventory")
+
+  createShipment(
+    item_id: Int!,
+    quantity: Int!,
+    destination: String!,
+    status: String!): Shipment!
+    @field(resolver: "App\\GraphQL\\Mutations\\CreateShipment@createShipment")
+
+  updateShipment(
+    id: ID!
+    item_id: Int
+    quantity: Int
+    destination: String
+    status: String): Shipment!
+    @field(resolver: "App\\GraphQL\\Mutations\\UpdateShipment@updateShipment")
+
+  deleteShipment(
+    id: ID!): Boolean!
+    @field(resolver: "App\\GraphQL\\Mutations\\DeleteShipment@deleteShipment")
+
+  createTracking(
+    shipment_id: Int!,
+    location: String!,
+    status: String!): Tracking!
+    @field(resolver: "App\\GraphQL\\Mutations\\CreateTracking@createTracking")
+
+  updateTracking(
+    id: ID!,
+    shipment_id: Int!,
+    location: String,
+    status: String): Tracking!
+    @field(resolver: "App\\GraphQL\\Mutations\\UpdateTracking@updateTracking")
+
+  deleteTracking(
+    id: ID!): Boolean!
+    @field(resolver: "App\\GraphQL\\Mutations\\DeleteTracking@deleteTracking")
+}

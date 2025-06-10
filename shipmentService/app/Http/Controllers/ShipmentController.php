@@ -51,13 +51,21 @@ class ShipmentController extends Controller
 
         $shipment = shipmentsService::create($request->all());
 
-        Http::patch('http://localhost:8001/api/inventories/' . $request->item_id . '/decrease', [
+        Http::patch(env('INVENTORY_URL') . '/' . $request->item_id . '/decrease', [
             'quantity' => $request->quantity,
         ]);
 
-        Http::post('http://localhost:8002/api/trackings', [
+        $inventoryResponse = Http::get(env('INVENTORY_URL') . '/' . $request->item_id);
+        $location = 'Unknown';
+
+        if ($inventoryResponse->successful()) {
+            $inventoryData = $inventoryResponse->json();
+            $location = $inventoryData['data']['location'] ?? 'Unknown';
+        }
+
+        Http::post(env('TRACKING_URL') . '/', [
             'shipment_id' => $shipment->id,
-            'location' => 'Warehouse',
+            'location' => $location,
             'status' => 'ready',
         ]);
 
@@ -114,11 +122,11 @@ class ShipmentController extends Controller
                 return $cekStokResponse;
             }
 
-            Http::patch('http://localhost:8001/api/inventories/' . $shipment->item_id . '/increase', [
+            Http::patch(env('INVENTORY_URL') . '/' . $shipment->item_id . '/increase', [
                 'quantity' => $shipment->quantity,
             ]);
 
-            Http::patch('http://localhost:8001/api/inventories/' . $request->item_id . '/decrease', [
+            Http::patch(env('INVENTORY_URL') . '/' . $request->item_id . '/decrease', [
                 'quantity' => $request->quantity,
             ]);
         }
@@ -137,13 +145,17 @@ class ShipmentController extends Controller
         if (!$shipment) {
             return new ShipmentResource(null, 'failed', 'Shipment not found');
         }
+
+        Http::patch(env('INVENTORY_URL') . '/' . $shipment->item_id . '/increase', [
+            'quantity' => $shipment->quantity,
+        ]);
         $shipment->delete();
         return new ShipmentResource(null, 'success', 'Shipment deleted successfully');
     }
 
     public function cekStok($item_id, $quantity)
     {
-        $response = Http::get('http://localhost:8001/api/inventories/' . $item_id);
+        $response = Http::get(env('INVENTORY_URL') . '/' . $item_id);
 
         if ($response->failed()) {
             return new ShipmentResource(null, 'failed', 'Inventory service unavailable or item not found');
@@ -159,23 +171,23 @@ class ShipmentController extends Controller
 
     }
 
-    public function updateStatus(Request $request, string $id)
-    {
-        $shipment = shipmentsService::find($id);
-        if (!$shipment) {
-            return new ShipmentResource(null, 'failed', 'Shipment not found');
-        }
+    // public function updateStatus(Request $request, string $id)
+    // {
+    //     $shipment = shipmentsService::find($id);
+    //     if (!$shipment) {
+    //         return new ShipmentResource(null, 'failed', 'Shipment not found');
+    //     }
 
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:pending,in_progress,cancel,done',
-        ]);
+    //     $validator = Validator::make($request->all(), [
+    //         'status' => 'required|string|in:pending,in_progress,cancel,done',
+    //     ]);
 
-        if ($validator->fails()) {
-            return new ShipmentResource(null, 'failed', $validator->errors());
-        }
+    //     if ($validator->fails()) {
+    //         return new ShipmentResource(null, 'failed', $validator->errors());
+    //     }
 
-        $shipment->update(['status' => $request->status]);
+    //     $shipment->update(['status' => $request->status]);
 
-        return new ShipmentResource($shipment, 'success', 'Shipment status updated successfully');
-    }
+    //     return new ShipmentResource($shipment, 'success', 'Shipment status updated successfully');
+    // }
 }
