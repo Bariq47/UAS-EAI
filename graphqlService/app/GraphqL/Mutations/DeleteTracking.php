@@ -8,7 +8,7 @@ class DeleteTracking
 {
     public function deleteTracking($_, array $args)
     {
-        $response = Http::delete(env('TRACKING_RUL') . '/api/trackings/' . $args['id']);
+        $response = Http::delete(env('TRACKING_URL') . '/api/trackings/' . $args['id']);
 
         if ($response->failed()) {
             throw new \Exception('Failed to delete Tracking.');
