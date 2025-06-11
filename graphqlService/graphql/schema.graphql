@@ -45,6 +45,7 @@ type Mutation {
 
   updateInventory(
     id: ID!,
+    item_name: String,
     stock_qty: Int,
     location: String): Inventory!
     @field(resolver: "App\\GraphQL\\Mutations\\UpdateInventory@updateInventory")
